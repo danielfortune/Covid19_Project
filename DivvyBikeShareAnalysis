@@ -1,0 +1,157 @@
+SELECT
+	ride_id, rideable_type, started_at, ended_at, member_casual, ride_length, day_of_week
+FROM DivvyBikeshare.dbo.Dec2021
+
+
+
+-- Create new table to aggregate our full data into, insert Dec2021 data
+SELECT
+	ride_id, rideable_type, started_at, ended_at, member_casual, ride_length, day_of_week
+INTO 
+	YearlySummary
+FROM
+	DivvyBikeshare.dbo.Dec2021
+
+
+
+-- Insert June2022 data to YearlySummary
+INSERT INTO 
+	dbo.YearlySummary
+SELECT 
+	 ride_id, rideable_type, started_at, ended_at, member_casual, ride_length, day_of_week
+FROM 
+	DivvyBikeshare.dbo.Jun2022
+
+
+
+-- Confirm data was inserted, row count 1,016,744
+SELECT
+	COUNT(ride_id)
+FROM 
+	dbo.YearlySummary
+
+
+
+-- Insert Nov2022 data to YearlySummary
+INSERT INTO 
+	DivvyBikeshare.dbo.YearlySummary
+SELECT 
+	ride_id, rideable_type, started_at, ended_at, member_casual, ride_length, day_of_week
+FROM 
+	DivvyBikeshare.dbo.Nov2022
+
+
+
+-- Confirm data was inserted, row count 1,575,429 
+SELECT
+	COUNT(ride_id)
+FROM 
+	DivvyBikeshare.dbo.YearlySummary
+
+
+
+-- Create new table to include yearly summary for only member data
+SELECT
+	ride_id, rideable_type, started_at, ended_at, member_casual, ride_length, day_of_week
+INTO 
+	MemberYearlySummary
+FROM
+	DivvyBikeshare.dbo.YearlySummary
+WHERE
+	member_casual = 'member'
+
+
+
+-- Create new table to include yearly summary for only casual user data
+SELECT
+	ride_id, rideable_type, started_at, ended_at, member_casual, ride_length, day_of_week
+INTO 
+	CasualYearlySummary
+FROM
+	dbo.YearlySummary
+WHERE
+	member_casual = 'casual'
+
+
+
+-- Max ride_length in format HH:MM:SS of YearlySummary
+SELECT 
+	MAX(CONVERT(varchar,ride_length,8)) as max_ride_length 
+FROM 
+	dbo.YearlySummary
+
+
+
+-- Min ride_length in format HH:MM:SS of YearlySummary
+SELECT 
+	MIN(CONVERT(varchar,ride_length,8)) as min_ride_length
+FROM 
+	dbo.YearlySummary
+
+
+
+-- Max ride_length in format HH:MM:SS of MemberYearlySummary
+SELECT 
+	MAX(CONVERT(varchar,ride_length,8)) as max_ride_length 
+FROM 
+	dbo.MemberYearlySummary
+
+
+
+-- Max ride_length in format HH:MM:SS of CasualYearlySummary
+SELECT 
+	MAX(CONVERT(varchar,ride_length,8)) as max_ride_length 
+FROM 
+	dbo.CasualYearlySummary
+
+
+
+-- Count member trips in YearlySummary
+SELECT
+	COUNT(ride_id)
+FROM
+	dbo.YearlySummary
+WHERE 
+	member_casual = 'member'
+
+
+
+-- Count member trips in Dec2021
+SELECT
+	COUNT(ride_id)
+FROM
+	DivvyBikeshare.dbo.Dec2021
+WHERE 
+	member_casual = 'member'
+
+
+
+	-- Count member trips in Jun2022
+SELECT
+	COUNT(ride_id)
+FROM
+	DivvyBikeshare.dbo.Jun2022
+WHERE 
+	member_casual = 'member'
+
+
+
+-- Count member trips in Nov2021
+SELECT
+	COUNT(ride_id)
+FROM
+	DivvyBikeshare.dbo.Nov2022
+WHERE 
+	member_casual = 'member'
+
+
+
+SELECT
+	ride_id, 
+	CONVERT(varchar,started_at,101) AS start_date,
+	CONVERT(varchar,started_at,108) AS start_time,
+	CONVERT(varchar,ended_at,101) AS end_date,
+	CONVERT(varchar,ended_at,108) AS end_time,
+	started_at, ended_at, rideable_type, member_casual, ride_length, day_of_week
+FROM
+	DivvyBikeshare.dbo.YearlySummary

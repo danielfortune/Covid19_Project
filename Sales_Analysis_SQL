@@ -1,0 +1,168 @@
+--Inspecting Data
+
+SELECT * FROM Sales.dbo.sales
+
+
+--ANALYSIS
+
+
+--Grouping sales by productline
+
+
+SELECT 
+	PRODUCTLINE, sum(sales) Revenue
+FROM 
+	Sales.dbo.sales
+GROUP BY 
+	PRODUCTLINE
+ORDER BY 
+	2 DESC
+
+
+SELECT 
+	YEAR_ID, sum(sales) Revenue
+FROM 
+	Sales.dbo.sales
+GROUP BY 
+	YEAR_ID
+ORDER BY 
+	2 DESC
+
+SELECT  
+	DEALSIZE,  sum(sales) Revenue
+FROM 
+	Sales.dbo.sales
+GROUP BY  
+	DEALSIZE
+ORDER BY 
+	2 DESC
+
+
+--What was the best month for sales in a specific year? How much was earned that month? 
+
+
+SELECT  
+	MONTH_ID, sum(sales) Revenue, count(ORDERNUMBER) Frequency
+FROM 
+	Sales.dbo.sales
+WHERE 
+	YEAR_ID = 2004 
+GROUP BY  
+	MONTH_ID
+ORDER BY 
+	2 DESC
+
+
+--November is our best month, what products were sold in November?
+
+
+SELECT  
+	MONTH_ID, PRODUCTLINE, sum(sales) Revenue, count(ORDERNUMBER)
+FROM 
+	Sales.dbo.sales
+WHERE 
+	YEAR_ID = 2004 and MONTH_ID = 11 
+GROUP BY  
+	MONTH_ID, PRODUCTLINE
+ORDER BY 
+	3 DESC
+
+
+--Who are our best customers (answered with Recency-Frequency-Monetary analysis)
+
+
+DROP TABLE IF EXISTS #rfm
+;WITH rfm AS
+(
+	SELECT 
+		CUSTOMERNAME, 
+		sum(sales) MonetaryValue,
+		avg(sales) AvgMonetaryValue,
+		count(ORDERNUMBER) Frequency,
+		max(ORDERDATE) last_order_date,
+		(SELECT max(ORDERDATE) FROM Sales.dbo.sales) max_order_date,
+		DATEDIFF(DD, max(ORDERDATE), (SELECT max(ORDERDATE) FROM Sales.dbo.sales)) Recency
+	FROM 
+		Sales.dbo.sales
+	GROUP BY 
+		CUSTOMERNAME
+),
+rfm_calc AS
+(
+
+	SELECT 
+		r.*,
+		NTILE(4) OVER (ORDER BY Recency DESC) rfm_recency,
+		NTILE(4) OVER (ORDER BY Frequency) rfm_frequency,
+		NTILE(4) OVER (ORDER BY MonetaryValue) rfm_monetary
+	FROM 
+		rfm r
+)
+SELECT 
+	c.*, rfm_recency+ rfm_frequency+ rfm_monetary AS rfm_cell,
+	cast(rfm_recency AS VARCHAR) + cast(rfm_frequency AS VARCHAR) + cast(rfm_monetary  AS VARCHAR)rfm_cell_string
+INTO 
+	#rfm
+FROM 
+	rfm_calc c
+
+
+
+--What products are sold together? 
+
+
+SELECT 
+	DISTINCT OrderNumber, stuff(
+
+	(SELECT ',' + PRODUCTCODE
+	FROM Sales.dbo.sales p
+	WHERE ORDERNUMBER in 
+		(
+
+			SELECT ORDERNUMBER
+			FROM(
+				SELECT ORDERNUMBER, count(*) rn
+				FROM Sales.dbo.sales
+				WHERE STATUS = 'Shipped'
+				GROUP BY ORDERNUMBER
+				) m
+			WHERE rn = 3 -- Number of Products Sold in an Order
+		)
+		and p.ORDERNUMBER = s.ORDERNUMBER
+		for xml path ('')), 1, 1, '') ProductCodes
+FROM 
+	Sales.dbo.sales s
+ORDER BY 
+	2 DESC
+
+
+
+--What city has the highest number of sales in a specific country
+
+
+SELECT 
+	city, sum (sales) Revenue
+FROM 
+	Sales.dbo.sales
+WHERE 
+	country = 'UK'
+GROUP BY 
+	city
+ORDER BY 
+	2 DESC
+
+
+
+---What is the best product in United States?
+
+
+SELECT 
+	country, YEAR_ID, PRODUCTLINE, sum(sales) Revenue
+FROM 
+	Sales.dbo.sales
+WHERE 
+	country = 'USA'
+GROUP BY  
+	country, YEAR_ID, PRODUCTLINE
+ORDER BY 
+	4 DESC
